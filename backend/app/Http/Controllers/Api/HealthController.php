@@ -15,25 +15,62 @@ class HealthController extends Controller
      * Liveness probe with a database connectivity check. Returns 200 when healthy,
      * 503 when the database is unreachable.
      */
-    public function __invoke(): JsonResponse
-    {
-        $database = 'ok';
-        $ok = true;
+    // public function __invoke(): JsonResponse
+    // {
+    //     $database = 'ok';
+    //     $ok = true;
 
+    //     try {
+    //         DB::connection()->getPdo();
+    //     } catch (Throwable $e) {
+    //         $database = 'unavailable';
+    //         $ok = false;
+    //         \Log::error('Health check DB failure', ['error' => $e->getMessage()]);
+    //     }
+
+    //     return response()->json([
+    //         'status' => $ok ? 'ok' : 'degraded',
+    //         'service' => 'fluxbill-api',
+    //         'checks' => [
+    //             'database' => $database,
+    //         ],
+    //         'time' => now()->toIso8601String(),
+    //     ], $ok ? 200 : 503);
+    // }
+
+    // app/Http/Controllers/Api/HealthController.php
+
+public function __invoke(): JsonResponse
+{
+    $database = 'ok';
+    $ok = true;
+    $error = "";
+
+    try {
+        DB::connection()->getPdo();
+        DB::connection()->select('SELECT 1'); // force an actual query,
+                                                 // not just "does a PDO
+                                                 // object exist in memory"
+    } catch (Throwable $e) {
         try {
-            DB::connection()->getPdo();
-        } catch (Throwable $e) {
+            DB::purge('pgsql');      // explicitly drop the dead connection
+            DB::reconnect('pgsql');  // force a fresh one
+            DB::connection()->select('SELECT 1');
+            $database = 'ok'; // recovered
+        } catch (Throwable $e2) {
             $database = 'unavailable';
             $ok = false;
+            $error = $e2->getMessage();
+            \Log::error('Health check DB failure', ['error' => $e2->getMessage()]);
         }
-
-        return response()->json([
-            'status' => $ok ? 'ok' : 'degraded',
-            'service' => 'fluxbill-api',
-            'checks' => [
-                'database' => $database,
-            ],
-            'time' => now()->toIso8601String(),
-        ], $ok ? 200 : 503);
     }
+
+    return response()->json([
+        'status' => $ok ? 'ok' : 'degraded',
+        'service' => 'fluxbill-api',
+        'error' => $error ?? " no error",
+        'checks' => ['database' => $database],
+        'time' => now()->toIso8601String(),
+    ], $ok ? 200 : 503);
+}
 }
