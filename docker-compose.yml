@@ -2,6 +2,29 @@
 # Host ports are intentionally non-default to avoid clashing with locally
 # running services. No Nomba env is set here — Nomba credentials are populated
 # only during the in-window build (1-7 July).
+#
+# .env is intentionally NOT copied into the image at build time —
+# backend/.dockerignore excludes it on purpose, the same way you'd
+# never want a secrets file baked into a production image. It is
+# bind-mounted at RUNTIME instead, below.
+#
+# LIVE CODE RELOADING — read before editing anything below:
+# ./backend is now bind-mounted into both app and worker. This means
+# editing any PHP file on your host takes effect immediately on the
+# NEXT request/job — no `docker compose up --build` needed for normal
+# code changes. You only need --build again when you change
+# composer.json/composer.lock (new package) or the Dockerfile itself.
+#
+# The /var/www/html/vendor line directly below the main mount is
+# NOT a typo or a mistake — it is a deliberate "anonymous volume"
+# that protects the container's own installed vendor/ folder from
+# being overwritten by the bind-mount above it. Without this line,
+# mounting ./backend over /var/www/html would also overwrite
+# vendor/ with whatever is (or isn't) on your host machine — and
+# unless every teammate has run `composer install` locally on their
+# own Mac/PC outside Docker too, this would delete a working
+# vendor/ folder and break the app immediately. Do not remove this
+# line unless you understand this tradeoff.
 
 services:
   db:
@@ -25,6 +48,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./backend:/var/www/html
+      # full source tree bind-mounted — PHP file edits on the host
+      # take effect on the next request without a rebuild
+      - /var/www/html/vendor
+      # anonymous volume — preserves the container's OWN installed
+      # vendor/ folder against being overwritten by the mount above.
+      # See the top-of-file note for why this line must stay.
+      - ./backend/.env:/var/www/html/.env
+      # .env specifically still needs its own explicit mount line
+      # even though the bind-mount above would normally cover it —
+      # this is belt-and-suspenders against .dockerignore excluding
+      # .env from ever being baked into the image in the first
+      # place, and protects against any future change to the main
+      # mount strategy above silently breaking .env access again.
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
@@ -41,16 +79,43 @@ services:
       SESSION_DRIVER: file
     ports:
       - "8080:8000" # non-default host port -> container :8000
+    # cache:table is idempotent here via `|| true` — safe to run on
+    # every restart without erroring once the migration file already
+    # exists. Long-term, generate it once and commit the migration
+    # file to the repo instead of running cache:table at runtime.
     command: >
       sh -c "php artisan key:generate --force &&
-             php artisan migrate --force &&
-             php artisan serve --host=0.0.0.0 --port=8000"
+              (php artisan cache:table || true) &&
+              php artisan migrate --force &&
+              php artisan serve --host=0.0.0.0 --port=8000"
+    # healthcheck only reports healthy once migrations have actually
+    # completed — NOT just once the container process has started.
+    # This is what worker's depends_on below actually waits for,
+    # closing the race condition that caused the "cache table does
+    # not exist" error even after cache:table was added to command.
+    healthcheck:
+      test: ["CMD", "php", "artisan", "migrate:status"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
 
   worker:
     build: ./backend
     depends_on:
-      db:
+      app:
         condition: service_healthy
+      # waits for app's healthcheck (migrate:status passing) rather
+      # than just db being healthy — db being healthy is necessary
+      # but not sufficient, since app still needs to run
+      # cache:table + migrate before the cache table actually exists
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/vendor
+      - ./backend/.env:/var/www/html/.env
+      # same mounts as app, same reasoning — worker also runs PHP
+      # code (queue:work, schedule:work) and should reflect live
+      # edits the same way app does
     environment:
       APP_ENV: local
       DB_CONNECTION: pgsql
@@ -63,6 +128,16 @@ services:
       CACHE_STORE: database
       SESSION_DRIVER: file
     # Queue worker (billing/retry jobs) + scheduler (daily sweeps).
+    # NOTE: queue:work loads job classes ONCE per worker process —
+    # editing a Job class's code will NOT take effect on already-
+    # queued jobs being processed by a worker that's been running
+    # since before your edit. Restart this specific container
+    # (docker compose restart worker) after changing Job/Listener
+    # code, even though the bind-mount makes app's controller/route
+    # changes apply live without a restart. This is a PHP process
+    # lifecycle difference, not a mount problem — queue:work is a
+    # long-running loop that keeps classes loaded in memory, unlike
+    # `serve` which re-reads files more often per request.
     command: >
       sh -c "php artisan schedule:work & php artisan queue:work --tries=3 --backoff=10"
 
