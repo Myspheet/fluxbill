@@ -140,6 +140,15 @@ services:
     # `serve` which re-reads files more often per request.
     command: >
       sh -c "php artisan schedule:work & php artisan queue:work --tries=3 --backoff=10"
-
+  frontend:
+    build: ./frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
 volumes:
   fluxbill_db:
