@@ -1,0 +1,25 @@
+# FluxBill — backup guard so strategy/planning artifacts never enter the repo.
+# The repo root is app/, so docs/, ACTION.md and the PDFs (one level up) are
+# already outside it; this is belt-and-suspenders.
+
+# Strategy / planning artifacts (must never be committed)
+*.pdf
+ACTION.md
+/docs/
+HACKATHON.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Node / build
+node_modules/
+dist/
