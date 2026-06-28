@@ -1,0 +1,783 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "FluxBill API",
+        "version": "1.0.0",
+        "description": "FluxBill is a **recurring-revenue recovery layer** built on Nomba. This is the API a\nmerchant's developer consumes.\n\n**Auth.** Merchant endpoints use a Sanctum bearer token (`Authorization: Bearer <token>`),\nissued at register/login. Public endpoints (register, login, health) need no token.\n\n**Money.** All amounts are in **kobo** (integer, \u20a61 = 100 kobo) \u2014 never float.\n\n**Errors.** Every endpoint returns one shape, so you write a single error handler:\n`{ \"error\": { \"code\", \"message\", \"field\", \"request_id\" } }`.\nStatus codes: 201 created \u00b7 202 async (checkout) \u00b7 401 unauthenticated \u00b7 404 not found\n(also returned for another merchant's resource \u2014 existence is never leaked) \u00b7 409 idempotency\nconflict \u00b7 422 validation.\n\n> Endpoints that call Nomba (checkout, webhooks, charging) are added during the integration\n> window and are not yet present here."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api"
+        }
+    ],
+    "security": [
+        {
+            "http": []
+        }
+    ],
+    "paths": {
+        "/merchants/register": {
+            "post": {
+                "operationId": "merchants.register",
+                "description": "Creates a merchant account and returns a Sanctum API token plus a\n`webhook_secret`. The secret is shown **once** here and never returned\nagain \u2014 store it to verify FluxBill's outbound webhooks.",
+                "summary": "Register a merchant",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterMerchantRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "merchant": {
+                                            "$ref": "#/components/schemas/MerchantResource"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "webhook_secret": {
+                                            "type": "string",
+                                            "description": "Plaintext webhook_secret is shown once here, never returned again."
+                                        }
+                                    },
+                                    "required": [
+                                        "merchant",
+                                        "token",
+                                        "webhook_secret"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "operationId": "auth.login",
+                "description": "Exchange email + password for a Sanctum API token.",
+                "summary": "Log in",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "merchant": {
+                                            "$ref": "#/components/schemas/MerchantResource"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "merchant",
+                                        "token"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "operationId": "auth.me",
+                "description": "Return the authenticated merchant's profile.",
+                "summary": "Current merchant",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`MerchantResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/MerchantResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "operationId": "auth.logout",
+                "description": "Revoke the bearer token used for the current request.",
+                "summary": "Log out",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "const": "logged_out"
+                                        }
+                                    },
+                                    "required": [
+                                        "status"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "operationId": "health",
+                "description": "Liveness probe with a database connectivity check. Returns 200 when healthy,\n503 when the database is unreachable.",
+                "summary": "Health check",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/merchants/webhook": {
+            "patch": {
+                "operationId": "merchants.webhook.update",
+                "description": "Set where FluxBill delivers downstream webhooks for the authenticated merchant.",
+                "summary": "Update webhook URL",
+                "tags": [
+                    "Merchant"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "webhook_url": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "maxLength": 2048
+                                    }
+                                },
+                                "required": [
+                                    "webhook_url"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`MerchantResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/MerchantResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/plans": {
+            "get": {
+                "operationId": "plans.index",
+                "description": "Returns the authenticated merchant's plans (tenant-scoped).",
+                "summary": "List plans",
+                "tags": [
+                    "Plan"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PlanResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PlanResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "plans.store",
+                "description": "`amount` is in kobo (e.g. 500000 = \u20a65,000). The plan is created for the\nauthenticated merchant.",
+                "summary": "Create a plan",
+                "tags": [
+                    "Plan"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorePlanRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`PlanResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlanResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/plans/{id}": {
+            "get": {
+                "operationId": "plans.show",
+                "description": "Returns 404 if the plan does not exist or belongs to another merchant.",
+                "summary": "Get a plan",
+                "tags": [
+                    "Plan"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PlanResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlanResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "plans.update",
+                "description": "Partial update. Set `status` to `archived` to archive instead of deleting.",
+                "summary": "Update a plan",
+                "tags": [
+                    "Plan"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePlanRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PlanResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlanResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "plans.destroy",
+                "description": "DELETE archives (never hard-deletes) so historical invoices stay intact.",
+                "summary": "Archive a plan",
+                "tags": [
+                    "Plan"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PlanResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlanResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "http": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+        "schemas": {
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "title": "LoginRequest"
+            },
+            "MerchantResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "webhook_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "fee_billing_model": {
+                        "type": "string"
+                    },
+                    "fee_rate": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "webhook_url",
+                    "fee_billing_model",
+                    "fee_rate"
+                ],
+                "title": "MerchantResource"
+            },
+            "PlanResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "description": "kobo"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "interval_count": {
+                        "type": "integer"
+                    },
+                    "trial_days": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "subscribe_url": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "amount",
+                    "currency",
+                    "interval",
+                    "interval_count",
+                    "trial_days",
+                    "status",
+                    "subscribe_url",
+                    "created_at"
+                ],
+                "title": "PlanResource"
+            },
+            "RegisterMerchantRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8
+                    },
+                    "webhook_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 2048
+                    }
+                },
+                "required": [
+                    "name",
+                    "email",
+                    "password"
+                ],
+                "title": "RegisterMerchantRequest"
+            },
+            "StorePlanRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "amount": {
+                        "type": "integer",
+                        "description": "Amount is in kobo (integer). The frontend converts naira -> kobo before sending.",
+                        "minimum": 1
+                    },
+                    "currency": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 3
+                    },
+                    "interval": {
+                        "type": "string",
+                        "enum": [
+                            "weekly",
+                            "monthly",
+                            "annual",
+                            "custom"
+                        ]
+                    },
+                    "interval_count": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "trial_days": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "amount",
+                    "interval"
+                ],
+                "title": "StorePlanRequest"
+            },
+            "UpdatePlanRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "amount": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "currency": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 3
+                    },
+                    "interval": {
+                        "type": "string",
+                        "enum": [
+                            "weekly",
+                            "monthly",
+                            "annual",
+                            "custom"
+                        ]
+                    },
+                    "interval_count": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "trial_days": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "DELETE archives via status=archived; there is no hard delete.",
+                        "enum": [
+                            "active",
+                            "archived"
+                        ]
+                    }
+                },
+                "title": "UpdatePlanRequest"
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

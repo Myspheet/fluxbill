@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "FluxBill API",
+    "description": "FluxBill — recurring-revenue recovery layer on Nomba. Set the {{base_url}} and run **Register a merchant** first: it auto-saves {{merchant_token}} for every authenticated request. Money is in kobo (₦1 = 100 kobo). Full reference at /docs/api.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register a merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('merchant_token', json.token);",
+                  "  pm.environment.set('merchant_token', json.token);",
+                  "}",
+                  "pm.test('201 created', () => pm.response.code === 201);",
+                  "pm.test('returns token + one-time webhook_secret', () => {",
+                  "  pm.expect(json).to.have.property('token');",
+                  "  pm.expect(json).to.have.property('webhook_secret');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/merchants/register", "host": ["{{base_url}}"], "path": ["merchants", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Adaeze Gym\",\n  \"email\": \"owner@adaezegym.com\",\n  \"password\": \"a-strong-password\",\n  \"webhook_url\": \"https://yourapp.com/webhooks/fluxbill\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a merchant + returns an API token and a one-time webhook_secret."
+          }
+        },
+        {
+          "name": "Log in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('merchant_token', json.token);",
+                  "  pm.environment.set('merchant_token', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@adaezegym.com\",\n  \"password\": \"a-strong-password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Current merchant",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Log out",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plans",
+      "item": [
+        {
+          "name": "Create a plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) pm.collectionVariables.set('plan_id', json.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Gym Membership\",\n  \"amount\": 500000,\n  \"interval\": \"monthly\",\n  \"trial_days\": 7\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "amount is in kobo (500000 = ₦5,000.00)."
+          }
+        },
+        {
+          "name": "List plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+          }
+        },
+        {
+          "name": "Get a plan",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/plans/{{plan_id}}", "host": ["{{base_url}}"], "path": ["plans", "{{plan_id}}"] }
+          }
+        },
+        {
+          "name": "Update a plan",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/plans/{{plan_id}}", "host": ["{{base_url}}"], "path": ["plans", "{{plan_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 750000\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Archive a plan",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/plans/{{plan_id}}", "host": ["{{base_url}}"], "path": ["plans", "{{plan_id}}"] },
+            "description": "Archives the plan (status=archived); never hard-deletes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchant",
+      "item": [
+        {
+          "name": "Update webhook URL",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{merchant_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/merchants/webhook", "host": ["{{base_url}}"], "path": ["merchants", "webhook"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"webhook_url\": \"https://yourapp.com/webhooks/fluxbill\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks (inbound to YOUR app) — examples",
+      "description": "Reference payloads FluxBill POSTs to your webhook_url, signed with fluxbill-signature (HMAC-SHA256 over the raw body). Verify the signature before parsing. These are documentation examples; point the URL at your own endpoint to test.",
+      "item": [
+        {
+          "name": "subscription.access_suspended (example)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "fluxbill-signature", "value": "<hmac_sha256_of_raw_body_with_your_webhook_secret>" }
+            ],
+            "url": { "raw": "https://yourapp.com/webhooks/fluxbill", "protocol": "https", "host": ["yourapp", "com"], "path": ["webhooks", "fluxbill"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"subscription.access_suspended\",\n  \"request_id\": \"evt_9f2a1c\",\n  \"created_at\": \"2026-07-04T09:15:00Z\",\n  \"data\": {\n    \"subscription_id\": \"sub_a1b2c3\",\n    \"customer\": { \"id\": \"cus_8821\", \"email\": \"emeka@gmail.com\" },\n    \"plan_id\": \"plan_growth_monthly\",\n    \"reason\": \"dunning_exhausted\",\n    \"last_decline_reason\": \"INSUFFICIENT_FUNDS\",\n    \"attempts_made\": 4\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
