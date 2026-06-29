@@ -41,21 +41,17 @@ app/                      ← git repo root (this folder)
 ```bash
 cd app
 cp backend/.env.example backend/.env   # Nomba keys stay blank pre-window
-docker compose up --build
+cp frontend/.env.example frontend/.env   # Nomba keys stay blank pre-window
+docker compose up --build -d
 ```
 
 - API: http://localhost:8080/api  (health: `GET /api/health`)
 - Postgres: localhost:55432  (non-default host port)
+- Frontend: http://localhost:5173
 
 > Host ports are deliberately non-default (app `8080`, db `55432`) to avoid clashing with locally running services.
 
-### Frontend (separate dev server)
 
-```bash
-cd app/frontend
-npm install
-npm run dev          # http://localhost:5173  (proxies /api -> backend)
-```
 
 ## Quick start (local, no Docker)
 
@@ -105,7 +101,31 @@ Everything here runs with **no Nomba credentials** — nothing calls `api.nomba.
 - **Standardised errors** — every endpoint returns `{ error: { code, message, field, request_id } }`.
 - **CORS** — wired to `FRONTEND_URL`.
 - **Smart Retry Engine logic (pure, unit-tested)** — `DunningRouter` (decline-reason routing), `ProrationService`, partial-payment reconciliation, `SubscriptionStateMachine` (9-state guards), `PortalService` (hashed, single-use, expiring tokens), kobo + HMAC helpers.
-- **Frontend** — 7 screens (register, login, create plan, dashboard, subscribe, payment return, portal). Register/login/create-plan/dashboard call the live API; checkout/portal screens are static until their Nomba features land.
+- **Admin panel** — `is_admin` flag on merchants; admin-only `GET /api/admin/merchants` (all merchants + aggregate counts) and `GET /api/admin/merchants/{id}` (full details: plans, customers, subscriptions, invoices). Protected by `EnsureIsAdmin` middleware.
+- **Frontend** — 9 screens (register, login, create plan, dashboard, subscribe, payment return, portal, admin merchant list, admin merchant detail). Register/login/create-plan/dashboard call the live API; checkout/portal screens are static until their Nomba features land.
+
+### Demo + Admin accounts (seeded automatically on `docker compose up`)
+
+The `DatabaseSeeder` runs via `php artisan migrate --seed --force` on every container start and uses `firstOrCreate` — fully idempotent.
+
+| Account | Email | Password | Role |
+|---|---|---|---|
+| Demo merchant | `demo@fluxbill.app` | `password` | Regular merchant |
+| Super Admin 1 | `admin1@fluxbill.app` | `password` | Admin (`is_admin = true`) |
+| Super Admin 2 | `admin2@fluxbill.app` | `password` | Admin (`is_admin = true`) |
+
+To **promote an existing merchant** to admin via Tinker:
+
+```bash
+docker compose exec app php artisan tinker \
+  --execute="Merchant::where('email','your@email.com')->firstOrFail()->update(['is_admin'=>true]);"
+```
+
+To **manually reseed** without a full rebuild:
+
+```bash
+docker compose exec app php artisan db:seed --force
+```
 
 ### Tests
 
@@ -147,5 +167,8 @@ The pure-logic core that decides retries, proration, grace/suspension and partia
 | PATCH | `/api/merchants/webhook` | merchant | Update downstream webhook URL |
 | GET/POST | `/api/plans` | merchant | List / create plans |
 | GET/PATCH/DELETE | `/api/plans/{id}` | merchant | Show / edit / archive a plan |
+| GET | `/api/admin/merchants` | admin | List all merchants with aggregate counts |
+| GET | `/api/admin/merchants/{id}` | admin | Full merchant detail (plans, customers, subscriptions, invoices) |
+| GET | `/api/admin/summary` | admin | Platform-wide totals (merchants, plans, customers, subscriptions) |
 
-All merchant endpoints are tenant-scoped; every error follows the standardised shape.
+All merchant endpoints are tenant-scoped; admin endpoints require `is_admin = true`; every error follows the standardised shape.

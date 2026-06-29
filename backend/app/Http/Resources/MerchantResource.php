@@ -17,6 +17,7 @@ class MerchantResource extends JsonResource
             'webhook_url' => $this->webhook_url,
             'fee_billing_model' => $this->fee_billing_model,
             'fee_rate' => (int) $this->fee_rate,
+            'is_admin' => (bool) $this->is_admin,
         ];
     }
 }

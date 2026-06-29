@@ -14,9 +14,10 @@ class MerchantFactory extends Factory
 
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
         return [
-            'name' => fake()->company(),
-            'email' => fake()->unique()->safeEmail(),
+            'name' => $faker->company(),
+            'email' => $faker->unique()->safeEmail(),
             'password_hash' => Hash::make('password'),
             'webhook_url' => null,
             'webhook_secret' => 'whsec_'.Str::random(40),

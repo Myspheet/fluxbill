@@ -38,6 +38,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/plans/{id}', [PlanController::class, 'destroy'])->name('plans.destroy');
 });
 
+// Admin-only (Sanctum + is_admin). Platform-wide visibility across all merchants.
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/merchants', [\App\Http\Controllers\Api\AdminController::class, 'merchants'])->name('admin.merchants');
+    Route::get('/merchants/{id}', [\App\Http\Controllers\Api\AdminController::class, 'merchant'])->name('admin.merchants.show');
+    Route::get('/summary', [\App\Http\Controllers\Api\AdminController::class, 'summary'])->name('admin.summary');
+});
+
 /*
 |--------------------------------------------------------------------------
 | IN-WINDOW routes (DO NOT add before 1 July) — build manifest only

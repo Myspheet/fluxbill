@@ -23,3 +23,4 @@ Thumbs.db
 # Node / build
 node_modules/
 dist/
+FLOW.md

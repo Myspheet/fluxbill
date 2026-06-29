@@ -17,10 +17,13 @@ export default function Login() {
     setError(null)
     try {
       const { data } = await api.post('/auth/login', form)
+      console.log(data)
       setToken(data.token)
       navigate('/dashboard')
     } catch (err) {
+      console.log(err.message)
       setError(err.message)
+      console.log(error)
     } finally {
       setLoading(false)
     }

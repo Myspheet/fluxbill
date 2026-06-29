@@ -4,7 +4,7 @@ This guide is written for the **downstream developer**: an engineer at a gym, Sa
 
 You only ever talk to FluxBill's API. FluxBill talks to Nomba for you.
 
-- **Base URL:** `https://api.fluxbill.app/api` (local: `http://localhost:8000/api`)
+- **Base URL:** `https://api.fluxbill.app/api` (local: `http://localhost:8080/api`)
 - **Interactive reference:** `/docs/api` (OpenAPI 3.1, “Try it” enabled) · machine-readable spec at `/docs/api.json`
 - **Postman:** import [`postman/FluxBill.postman_collection.json`](../../postman/FluxBill.postman_collection.json) + the environment file.
 

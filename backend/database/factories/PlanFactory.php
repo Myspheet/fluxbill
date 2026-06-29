@@ -13,9 +13,10 @@ class PlanFactory extends Factory
 
     public function definition(): array
     {
+        $faker = \Faker\Factory::create();
         return [
             'merchant_id' => Merchant::factory(),
-            'name' => fake()->words(2, true),
+            'name' => $faker->words(2, true),
             'description' => null,
             'amount' => 500000, // ₦5,000 in kobo
             'currency' => 'NGN',

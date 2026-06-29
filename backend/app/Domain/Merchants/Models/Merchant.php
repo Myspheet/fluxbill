@@ -33,6 +33,7 @@ class Merchant extends Authenticatable
         'webhook_secret',
         'fee_billing_model',
         'fee_rate',
+        'is_admin',
     ];
 
     protected $hidden = [
@@ -44,6 +45,7 @@ class Merchant extends Authenticatable
     {
         return [
             'fee_rate' => 'integer',
+            'is_admin' => 'boolean',
         ];
     }
 

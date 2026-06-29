@@ -10,11 +10,7 @@ use App\Http\Resources\PlanResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-/**
- * Plan CRUD — pure DB, no Nomba. Tenant isolation is enforced by the global
- * MerchantScope on the Plan model, so no manual where('merchant_id', ...) here.
- * A cross-merchant id simply isn't found -> 404.
- */
+
 class PlanController extends Controller
 {
     /**
@@ -37,9 +33,8 @@ class PlanController extends Controller
      */
     public function store(StorePlanRequest $request): JsonResponse
     {
-        // merchant_id is auto-filled by the BelongsToMerchant trait.
+        
         $plan = Plan::create($request->validated());
-        // Reflect DB-level defaults (currency=NGN, interval_count=1, status=active).
         $plan->refresh();
 
         return (new PlanResource($plan))
