@@ -10,6 +10,7 @@ import PaymentReturn from './pages/checkout/PaymentReturn'
 import Portal from './pages/portal/Portal'
 import AdminMerchants from './pages/admin/AdminMerchants'
 import AdminMerchantDetail from './pages/admin/AdminMerchantDetail'
+import Home from './pages/Home'
 
 function Protected({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -19,7 +20,7 @@ export default function App() {
   return (
     <Routes>
       {/* Merchant admin (Sanctum) */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Home />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route

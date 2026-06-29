@@ -93,17 +93,75 @@ export default function Register() {
 
 export function AuthShell({ title, children }) {
   return (
-    <div className="grid min-h-screen place-items-center px-6 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-nomba-yellow font-black text-nomba-black">
+    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-12 bg-white text-ink">
+      {/* Left Marketing Panel - Visible on large screens */}
+      <div className="hidden lg:flex lg:col-span-5 bg-[#0d0e12] relative overflow-hidden flex-col justify-between p-12 text-white border-r border-neutral-900 select-none">
+        {/* Gradients */}
+        <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-nomba-yellow/10 rounded-full blur-[80px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[80px] pointer-events-none"></div>
+        
+        {/* Brand */}
+        <Link to="/" className="flex items-center gap-2 relative z-10 self-start">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-nomba-yellow font-black text-nomba-black text-sm">
             F
           </span>
-          <span className="text-xl font-bold">FluxBill</span>
+          <span className="text-xl font-bold tracking-tight text-white">FluxBill</span>
+        </Link>
+
+        {/* Big Text */}
+        <div className="relative z-10 my-auto pr-8">
+          <span className="text-nomba-yellow text-xs uppercase tracking-widest font-extrabold block mb-3">Designed for Nigeria</span>
+          <h2 className="text-3xl font-black leading-tight text-white mb-6">
+            The Revenue Recovery Layer for Subscriptions
+          </h2>
+          <p className="text-neutral-400 text-sm leading-relaxed mb-6">
+            Isolate merchant funds with Nomba Sub-Accounts, deploy custom retry routers to fight failed cards or outages, and let customers self-serve.
+          </p>
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-nomba-yellow text-lg font-bold">₦5B+</span>
+              <span className="text-xs text-neutral-400">Total addressable market currently lost to failed payments.</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-nomba-yellow text-lg font-bold">25%</span>
+              <span className="text-xs text-neutral-400">Average subscription churn saved by our retry engine.</span>
+            </div>
+          </div>
         </div>
-        <div className="card">
-          <h1 className="mb-5 text-xl font-bold">{title}</h1>
+
+        {/* Footer info */}
+        <p className="text-xs text-neutral-500 relative z-10">
+          Powered by Nomba Sub-Accounts & Tokenized Cards
+        </p>
+      </div>
+
+      {/* Right Form Panel */}
+      <div className="col-span-1 lg:col-span-7 flex flex-col justify-between bg-neutral-50 min-h-screen p-6 sm:p-12 relative">
+        {/* Back to Home & Logo (mobile only) */}
+        <div className="flex items-center justify-between w-full mb-8">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-neutral-900 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            Back to home
+          </Link>
+          <Link to="/" className="flex lg:hidden items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded bg-nomba-yellow font-black text-nomba-black text-xs">
+              F
+            </span>
+            <span className="text-base font-bold text-neutral-900">FluxBill</span>
+          </Link>
+        </div>
+
+        {/* Form Container */}
+        <div className="my-auto mx-auto w-full max-w-md bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm">
+          <h1 className="mb-6 text-xl font-bold text-neutral-900 tracking-tight">{title}</h1>
           {children}
+        </div>
+
+        {/* Tiny footer */}
+        <div className="mt-8 text-center lg:text-left text-xs text-neutral-400">
+          &copy; {new Date().getFullYear()} FluxBill. All rights reserved.
         </div>
       </div>
     </div>
