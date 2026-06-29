@@ -86,7 +86,7 @@ services:
     command: >
       sh -c "php artisan key:generate --force &&
               (php artisan cache:table || true) &&
-              php artisan migrate --force &&
+              php artisan migrate --seed --force &&
               php artisan serve --host=0.0.0.0 --port=8000"
     # healthcheck only reports healthy once migrations have actually
     # completed — NOT just once the container process has started.

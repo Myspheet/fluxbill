@@ -32,6 +32,9 @@ export default function MerchantLayout({ children }) {
             <NavLink to="/plans/new" className={navItem}>
               Create Plan
             </NavLink>
+            <NavLink to="/admin/merchants" className={navItem}>
+              Admin
+            </NavLink>
             {authed ? (
               <button onClick={logout} className="ml-2 btn-ghost py-2 text-sm">
                 Log out

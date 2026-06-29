@@ -19,16 +19,15 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password_hash');
 
-            // Populated only by an in-window Nomba sub-account call.
             $table->string('nomba_sub_account_id')->nullable();
             $table->string('nomba_sub_account_ref')->nullable();
 
             $table->string('webhook_url')->nullable();
-            $table->string('webhook_secret'); // for signing outbound webhooks; shown once at register
+            $table->string('webhook_secret'); 
 
             // Simulated business-model dashboard.
             $table->enum('fee_billing_model', ['percentage', 'flat'])->default('percentage');
-            $table->bigInteger('fee_rate')->default(0); // percent (150 = 1.5%) or flat kobo, per model
+            $table->bigInteger('fee_rate')->default(0); 
 
             $table->timestampsTz();
         });

@@ -8,6 +8,8 @@ import Subscribe from './pages/checkout/Subscribe'
 import AddGroupMembers from './pages/checkout/AddGroupMembers'
 import PaymentReturn from './pages/checkout/PaymentReturn'
 import Portal from './pages/portal/Portal'
+import AdminMerchants from './pages/admin/AdminMerchants'
+import AdminMerchantDetail from './pages/admin/AdminMerchantDetail'
 
 function Protected({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -33,6 +35,24 @@ export default function App() {
         element={
           <Protected>
             <CreatePlan />
+          </Protected>
+        }
+      />
+
+      {/* Admin panel */}
+      <Route
+        path="/admin/merchants"
+        element={
+          <Protected>
+            <AdminMerchants />
+          </Protected>
+        }
+      />
+      <Route
+        path="/admin/merchants/:id"
+        element={
+          <Protected>
+            <AdminMerchantDetail />
           </Protected>
         }
       />

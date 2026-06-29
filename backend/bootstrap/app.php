@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             AssignRequestId::class,
         ]);
+
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureIsAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Standardised JSON error shape for the API (docs/06 §3) — one place only.

@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Requests;
-
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePlanRequest extends FormRequest
@@ -14,7 +14,14 @@ class StorePlanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('plans')->where(function ($query) {
+                return $query->where('merchant_id', auth()->id());
+            }),
+        ],
             'description' => ['nullable', 'string'],
             // Amount is in kobo (integer). The frontend converts naira -> kobo before sending.
             'amount' => ['required', 'integer', 'min:1'],
