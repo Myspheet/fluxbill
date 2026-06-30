@@ -44,6 +44,7 @@ return [
     | it makes a request with these credentials.
     */
     'nomba' => [
+          'env' => env('NOMBA_ENV', 'sandbox'),
         'base_url' => env('NOMBA_BASE_URL', 'https://api.nomba.com/v1'),
         'client_id' => env('NOMBA_CLIENT_ID'),
         'client_secret' => env('NOMBA_CLIENT_SECRET'),

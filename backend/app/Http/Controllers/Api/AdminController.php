@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Merchants\Models\Merchant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use App\Domain\Customers\Models\Customer;
+use App\Domain\Subscriptions\Models\Subscription;
+use App\Domain\Plans\Models\Plan;
 
 class AdminController extends Controller
 {
@@ -47,9 +50,9 @@ class AdminController extends Controller
         return response()->json([
             'data' => [
                 'total_merchants' => Merchant::where("is_admin", false)->count(),
-                'total_plans' => \App\Domain\Plans\Models\Plan::withoutGlobalScopes()->count(),
-                'total_customers' => \App\Domain\Customers\Models\Customer::withoutGlobalScopes()->count(),
-                'total_subscriptions' => \App\Domain\Subscriptions\Models\Subscription::withoutGlobalScopes()->count(),
+                'total_plans' => Plan::withoutGlobalScopes()->count(),
+                'total_customers' => Customer::withoutGlobalScopes()->count(),
+                'total_subscriptions' => Subscription::withoutGlobalScopes()->count(),
             ],
         ]);
     }
@@ -64,11 +67,11 @@ class AdminController extends Controller
     {
         $merchant = Merchant::findOrFail($id);
 
-        $plans = \App\Domain\Plans\Models\Plan::withoutGlobalScopes()
+        $plans = Plan::withoutGlobalScopes()
             ->where('merchant_id', $merchant->id)
             ->get();
 
-        $customers = \App\Domain\Customers\Models\Customer::withoutGlobalScopes()
+        $customers = Customer::withoutGlobalScopes()
             ->where('merchant_id', $merchant->id)
             ->get();
 
