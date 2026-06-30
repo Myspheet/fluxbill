@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import MerchantLayout from '../../components/MerchantLayout'
 import MetricCard from '../../components/MetricCard'
 import StatusBadge from '../../components/StatusBadge'
+import CreatePlanModal from '../../components/CreatePlanModal'
 import api from '../../lib/apiClient'
 import { formatKobo, formatKoboShort } from '../../lib/format'
 import {
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [createPlanOpen, setCreatePlanOpen] = useState(false)
 
   // Live, pre-window-safe data: the merchant's own plans.
   useEffect(() => {
@@ -34,9 +36,9 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold sm:text-2xl">Dashboard</h1>
           <p className="text-sm text-neutral-500">Recovery-first view of your recurring revenue.</p>
         </div>
-        <Link to="/plans/new" className="btn-primary w-full sm:w-auto text-center">
+        <button onClick={() => setCreatePlanOpen(true)} className="btn-primary w-full sm:w-auto">
           + Create plan
-        </Link>
+        </button>
       </div>
 
       {/* Metrics — the hero "recovered revenue" number in Nomba yellow. */}
@@ -65,7 +67,7 @@ export default function Dashboard() {
           ) : error ? (
             <p className="text-sm text-red-600">{error}</p>
           ) : plans.length === 0 ? (
-            <EmptyPlans />
+            <EmptyPlans onCreate={() => setCreatePlanOpen(true)} />
           ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <table className="w-full text-sm min-w-[480px]">
@@ -124,6 +126,13 @@ export default function Dashboard() {
         </div>
         <MockNote>AI module ships 5 July; sample recommendations shown.</MockNote>
       </section>
+
+      {/* Create Plan Modal */}
+      <CreatePlanModal
+        open={createPlanOpen}
+        onClose={() => setCreatePlanOpen(false)}
+        onSuccess={(plan) => setPlans((prev) => [plan, ...prev])}
+      />
     </MerchantLayout>
   )
 }
@@ -213,13 +222,13 @@ function Row({ k, v }) {
   )
 }
 
-function EmptyPlans() {
+function EmptyPlans({ onCreate }) {
   return (
     <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center">
       <p className="text-sm text-neutral-500">No plans yet.</p>
-      <Link to="/plans/new" className="mt-3 inline-block btn-primary">
+      <button onClick={onCreate} className="mt-3 btn-primary">
         Create your first plan
-      </Link>
+      </button>
     </div>
   )
 }
