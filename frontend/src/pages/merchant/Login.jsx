@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api, { setToken } from '../../lib/apiClient'
+import { useToast } from '../../components/Toast'
 import { AuthShell, Field, ErrorBanner } from './Register'
 
 export default function Login() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -17,13 +19,11 @@ export default function Login() {
     setError(null)
     try {
       const { data } = await api.post('/auth/login', form)
-      console.log(data)
       setToken(data.token)
+      toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (err) {
-      console.log(err.message)
       setError(err.message)
-      console.log(error)
     } finally {
       setLoading(false)
     }
