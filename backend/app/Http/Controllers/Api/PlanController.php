@@ -42,14 +42,20 @@ class PlanController extends Controller
             ->setStatusCode(201);
     }
 
-    /**
-     * Get a plan
-     *
-     * Returns 404 if the plan does not exist or belongs to another merchant.
-     */
     public function show(string $id): PlanResource
     {
         return new PlanResource(Plan::findOrFail($id));
+    }
+
+    /**
+     * Get a public plan
+     *
+     * Returns plan details for checkout. Bypasses MerchantScope.
+     */
+    public function showPublic(string $id): PlanResource
+    {
+        $plan = Plan::withoutGlobalScopes()->where('status', 'active')->findOrFail($id);
+        return new PlanResource($plan);
     }
 
     /**

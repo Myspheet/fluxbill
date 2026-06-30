@@ -32,6 +32,9 @@ export default function MerchantLayout({ children }) {
             <NavLink to="/plans/new" className={navItem}>
               Create Plan
             </NavLink>
+            <NavLink to="/customers" className={navItem}>
+              Customers
+            </NavLink>
             <NavLink to="/admin/merchants" className={navItem}>
               Admin
             </NavLink>

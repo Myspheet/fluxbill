@@ -4,6 +4,7 @@ import Register from './pages/merchant/Register'
 import Login from './pages/merchant/Login'
 import CreatePlan from './pages/merchant/CreatePlan'
 import Dashboard from './pages/merchant/Dashboard'
+import Customers from './pages/merchant/Customers'
 import Subscribe from './pages/checkout/Subscribe'
 import AddGroupMembers from './pages/checkout/AddGroupMembers'
 import PaymentReturn from './pages/checkout/PaymentReturn'
@@ -11,6 +12,8 @@ import Portal from './pages/portal/Portal'
 import AdminMerchants from './pages/admin/AdminMerchants'
 import AdminMerchantDetail from './pages/admin/AdminMerchantDetail'
 import Home from './pages/Home'
+import Storefront from './pages/checkout/Storefront'
+import PaymentConfirmation from './pages/checkout/PaymentConfirmation'
 
 function Protected({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -39,6 +42,14 @@ export default function App() {
           </Protected>
         }
       />
+      <Route
+        path="/customers"
+        element={
+          <Protected>
+            <Customers />
+          </Protected>
+        }
+      />
 
       {/* Admin panel */}
       <Route
@@ -62,6 +73,8 @@ export default function App() {
       <Route path="/subscribe/:planId" element={<Subscribe />} />
       <Route path="/subscribe/:planId/members" element={<AddGroupMembers />} />
       <Route path="/payment/return" element={<PaymentReturn />} />
+      <Route path="/store/:merchantId" element={<Storefront />} />
+      <Route path="/payment/success" element={<PaymentConfirmation />} />
 
       {/* Customer self-service portal (magic link) */}
       <Route path="/portal/:token" element={<Portal />} />

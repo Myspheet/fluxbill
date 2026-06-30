@@ -13,30 +13,56 @@ import {
 
 export default function Dashboard() {
   const [plans, setPlans] = useState([])
+  const [merchant, setMerchant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   // Live, pre-window-safe data: the merchant's own plans.
   useEffect(() => {
-    api
-      .get('/plans')
-      .then(({ data }) => setPlans(data.data || []))
+    Promise.all([
+      api.get('/plans'),
+      api.get('/auth/me')
+    ])
+      .then(([plansRes, meRes]) => {
+        setPlans(plansRes.data.data || [])
+        setMerchant(meRes.data.data || meRes.data || null)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
   const s = mockDashboardSummary
+  const storefrontUrl = merchant ? `${window.location.origin}/store/${merchant.id}` : ''
 
   return (
     <MerchantLayout>
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-sm text-neutral-500">Recovery-first view of your recurring revenue.</p>
         </div>
-        <Link to="/plans/new" className="btn-primary">
-          + Create plan
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {merchant && (
+            <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2 text-sm text-neutral-600">
+              <span className="font-semibold text-neutral-700">Storefront:</span>
+              <a href={`/store/${merchant.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-purple-700 underline truncate max-w-[200px] sm:max-w-xs">
+                View Storefront ↗
+              </a>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(storefrontUrl)
+                  alert('Storefront link copied to clipboard!')
+                }}
+                className="ml-1 text-xs text-purple-600 hover:text-purple-800 font-semibold"
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
+          <Link to="/plans/new" className="btn-primary">
+            + Create plan
+          </Link>
+        </div>
       </div>
 
       {/* Metrics — the hero "recovered revenue" number in Nomba yellow. */}

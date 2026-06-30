@@ -84,7 +84,7 @@ services:
     # exists. Long-term, generate it once and commit the migration
     # file to the repo instead of running cache:table at runtime.
     command: >
-      sh -c "php artisan key:generate --force &&
+      sh -c "php artisan key:generate &&
               (php artisan cache:table || true) &&
               php artisan migrate --seed --force &&
               php artisan serve --host=0.0.0.0 --port=8000"
