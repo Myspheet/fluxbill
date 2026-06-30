@@ -30,6 +30,7 @@ class WebhookController extends Controller
     {
         $payload = $request->input();
         $requestId = $request->header('X-Nomba-Request-Id') ?: ($payload['request_id'] ?? Str::uuid()->toString());
+        // NombaHackathon2026
 
         // Idempotency check
         $exists = DB::table('webhook_events')->where('request_id', $requestId)->exists();

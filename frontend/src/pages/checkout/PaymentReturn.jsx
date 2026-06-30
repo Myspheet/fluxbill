@@ -9,6 +9,40 @@ export default function PaymentReturn() {
   const [status, setStatus] = useState('pending')
   const [error, setError] = useState(null)
 
+
+  const checkStatus = async () => {
+    try {
+      const { data } = await api.get(`/subscriptions/checkout/${ref}/status`)
+      console.log(data)
+
+      if (data.status === 'paid') {
+        setStatus('active')
+
+        const queryParams = new URLSearchParams({
+          ref: data.invoice.merchant_tx_ref,
+          planName: data.metadata.planName,
+          amount: data.metadata.amount,
+          interval: data.metadata.interval,
+          customerName: data.metadata.customerName,
+          customerEmail: data.metadata.customerEmail,
+          seats: data.metadata.seats,
+          merchantName: data.metadata.merchantName,
+        }).toString()
+
+        setTimeout(() => {
+          navigate(`/payment/success?${queryParams}`, { replace: true })
+        }, 800)
+      } else {
+        timer = setTimeout(checkStatus, 2000)
+      }
+
+    } catch (error) {
+      console.log(error)
+      setError(err.message)
+    }
+  }
+
+
   useEffect(() => {
     if (ref === 'demo_inv_preview' || ref === 'inv_preview') {
       const t = setTimeout(() => setStatus('active'), 1500)
@@ -17,45 +51,13 @@ export default function PaymentReturn() {
 
     let active = true
     let timer
-
-    function checkStatus() {
-      api.get(`/subscriptions/checkout/${ref}/status`)
-        .then(({ data }) => {
-          if (!active) return
-          if (data.status === 'active') {
-            setStatus('active')
-            
-            const queryParams = new URLSearchParams({
-              ref: data.invoice.merchant_tx_ref,
-              planName: data.metadata.planName,
-              amount: data.metadata.amount,
-              interval: data.metadata.interval,
-              customerName: data.metadata.customerName,
-              customerEmail: data.metadata.customerEmail,
-              seats: data.metadata.seats,
-              merchantName: data.metadata.merchantName,
-            }).toString()
-
-            setTimeout(() => {
-              navigate(`/payment/success?${queryParams}`, { replace: true })
-            }, 800)
-          } else {
-            timer = setTimeout(checkStatus, 2000)
-          }
-        })
-        .catch((err) => {
-          if (!active) return
-          setError(err.message)
-        })
-    }
-
     checkStatus()
-
     return () => {
       active = false
       clearTimeout(timer)
     }
   }, [ref, navigate])
+
 
   return (
     <div className="grid min-h-screen place-items-center px-6 py-10">
