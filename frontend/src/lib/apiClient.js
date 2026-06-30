@@ -30,13 +30,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const payload = error.response?.data?.error
-    const normalised = new Error(payload?.message || error.message || 'Request failed')
-    normalised.code = payload?.code
-    normalised.field = payload?.field
-    normalised.requestId = payload?.request_id
-    normalised.status = error.response?.status
-    return Promise.reject(normalised)
+    const payload = error.response?.data?.error ?? error.response?.data;
+
+    const normalised = new Error(
+      payload?.message || error.message || 'Request failed'
+    );
+
+    normalised.code = payload?.code;
+    normalised.field = payload?.field;
+    normalised.requestId = payload?.request_id;
+    normalised.status = error.response?.status;
+
+    return Promise.reject(normalised);
   },
 )
 

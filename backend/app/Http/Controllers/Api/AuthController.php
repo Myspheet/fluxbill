@@ -25,6 +25,12 @@ class AuthController extends Controller
 
         $token = $merchant->createToken('api')->plainTextToken;
 
+        try {
+            \Illuminate\Support\Facades\Mail::to($merchant->email)->send(new \App\Mail\MerchantWelcomeMail($merchant));
+        } catch (\Exception $e) {
+            \Log::error('Merchant welcome email failed: ' . $e->getMessage());
+        }
+
         return response()->json([
             'merchant' => new MerchantResource($merchant),
             'token' => $token,

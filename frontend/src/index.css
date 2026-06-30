@@ -11,6 +11,34 @@
   }
 }
 
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 150ms ease-out;
+  }
+  .animate-scale-in {
+    animation: scale-in 150ms ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 200ms ease-out;
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-lg bg-nomba-yellow px-4 py-2.5

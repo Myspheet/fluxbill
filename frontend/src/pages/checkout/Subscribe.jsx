@@ -1,30 +1,74 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { mockPlan } from '../../lib/mockData'
+import api from '../../lib/apiClient'
 import { formatKobo } from '../../lib/format'
 
-// Public subscribe page. Plan details would come from GET a plan by id; the
-// "Subscribe Now" action calls POST /api/subscriptions/checkout and redirects to
-// Nomba's hosted checkout — that call is IN-WINDOW (Day 2), so this is static UI.
 export default function Subscribe() {
   const { planId } = useParams()
   const navigate = useNavigate()
-  const plan = { ...mockPlan, id: planId || mockPlan.id }
+  
+  const [plan, setPlan] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  
   const [form, setForm] = useState({ name: '', email: '' })
   const [isGroup, setIsGroup] = useState(false)
   const [seats, setSeats] = useState(2)
+
+  useEffect(() => {
+    api.get(`/plans/${planId}/public`)
+      .then(({ data }) => {
+        setPlan(data.data || data)
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [planId])
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
   function subscribe(e) {
     e.preventDefault()
-    // IN-WINDOW: POST /subscriptions/checkout -> window.location = checkout_url.
-    // Pre-window we just simulate the post-checkout flow.
-    if (isGroup) {
-      navigate(`/subscribe/${plan.id}/members?seats=${seats}`)
-    } else {
-      navigate(`/payment/return?ref=demo_inv_preview`)
-    }
+    if (!plan) return
+
+    setSubmitting(true)
+    setError(null)
+
+    api.post('/subscriptions/checkout', {
+      plan_id: plan.id,
+      name: form.name,
+      email: form.email,
+      seats: isGroup ? seats : 1
+    })
+      .then(({ data }) => {
+        window.location.href = data.checkout_url
+      })
+      .catch((err) => {
+        setError(err.message)
+        setSubmitting(false)
+      })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-50 grid place-items-center">
+        <p className="text-sm text-neutral-500 font-medium animate-pulse">Loading checkout details…</p>
+      </div>
+    )
+  }
+
+  if (error || !plan) {
+    return (
+      <div className="min-h-screen bg-neutral-50 grid place-items-center px-6">
+        <div className="w-full max-w-md card text-center">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-red-100 text-red-600 text-xl font-bold mb-4">
+            !
+          </div>
+          <h1 className="text-lg font-bold text-neutral-900">Plan not found</h1>
+          <p className="mt-2 text-sm text-neutral-500">{error || 'This subscription plan is not available.'}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -70,7 +114,9 @@ export default function Subscribe() {
               </div>
             )}
 
-            <button className="w-full btn-primary">Subscribe now</button>
+            <button disabled={submitting} className="w-full btn-primary">
+              {submitting ? 'Processing…' : 'Subscribe now'}
+            </button>
             <p className="text-center text-xs text-neutral-400">
               You'll be redirected to Nomba's secure checkout to enter your card.
             </p>

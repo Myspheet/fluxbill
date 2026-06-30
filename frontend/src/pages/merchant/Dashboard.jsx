@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import MerchantLayout from '../../components/MerchantLayout'
 import MetricCard from '../../components/MetricCard'
 import StatusBadge from '../../components/StatusBadge'
+import CreatePlanModal from '../../components/CreatePlanModal'
 import api from '../../lib/apiClient'
 import { formatKobo, formatKoboShort } from '../../lib/format'
 import {
@@ -13,34 +14,56 @@ import {
 
 export default function Dashboard() {
   const [plans, setPlans] = useState([])
+  const [merchant, setMerchant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [createPlanOpen, setCreatePlanOpen] = useState(false)
 
   // Live, pre-window-safe data: the merchant's own plans.
   useEffect(() => {
-    api
-      .get('/plans')
-      .then(({ data }) => setPlans(data.data || []))
+    Promise.all([
+      api.get('/plans'),
+      api.get('/auth/me')
+    ])
+      .then(([plansRes, meRes]) => {
+        setPlans(plansRes.data.data || [])
+        setMerchant(meRes.data.data || meRes.data || null)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
   const s = mockDashboardSummary
+  const storefrontUrl = merchant ? `${window.location.origin}/store/${merchant.id}` : ''
 
   return (
     <MerchantLayout>
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">Dashboard</h1>
           <p className="text-sm text-neutral-500">Recovery-first view of your recurring revenue.</p>
+          {merchant && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-neutral-600">
+              <span className="font-medium">Storefront:</span>
+              <a href={`/store/${merchant.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-nomba-yellow underline truncate max-w-[200px]">
+                View ↗
+              </a>
+              <button
+                onClick={() => navigator.clipboard.writeText(storefrontUrl)}
+                className="text-xs text-neutral-500 hover:text-nomba-black font-medium"
+              >
+                Copy
+              </button>
+            </div>
+          )}
         </div>
-        <Link to="/plans/new" className="btn-primary">
+        <button onClick={() => setCreatePlanOpen(true)} className="btn-primary w-full sm:w-auto">
           + Create plan
-        </Link>
+        </button>
       </div>
 
       {/* Metrics — the hero "recovered revenue" number in Nomba yellow. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Recovered revenue (this month)"
           value={formatKoboShort(s.recovered_revenue_kobo)}
@@ -53,7 +76,7 @@ export default function Dashboard() {
       </div>
       <MockNote>Metrics use sample data until the Nomba billing window (1–7 July).</MockNote>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid gap-6 sm:mt-8 lg:grid-cols-3">
         {/* Plans (LIVE) */}
         <section className="card lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
@@ -65,34 +88,36 @@ export default function Dashboard() {
           ) : error ? (
             <p className="text-sm text-red-600">{error}</p>
           ) : plans.length === 0 ? (
-            <EmptyPlans />
+            <EmptyPlans onCreate={() => setCreatePlanOpen(true)} />
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 text-left text-neutral-500">
-                  <th className="pb-2">Plan</th>
-                  <th className="pb-2">Amount</th>
-                  <th className="pb-2">Interval</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Subscribe link</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plans.map((p) => (
-                  <tr key={p.id} className="border-b border-neutral-100">
-                    <td className="py-2 font-medium">{p.name}</td>
-                    <td className="py-2">{formatKobo(p.amount)}</td>
-                    <td className="py-2 capitalize">{p.interval}</td>
-                    <td className="py-2">
-                      <StatusBadge status={p.status} />
-                    </td>
-                    <td className="py-2">
-                      <CopyLink url={p.subscribe_url} />
-                    </td>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-neutral-200 text-left text-neutral-500">
+                    <th className="pb-2">Plan</th>
+                    <th className="pb-2">Amount</th>
+                    <th className="pb-2">Interval</th>
+                    <th className="pb-2">Status</th>
+                    <th className="pb-2">Subscribe link</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {plans.map((p) => (
+                    <tr key={p.id} className="border-b border-neutral-100">
+                      <td className="py-2 font-medium">{p.name}</td>
+                      <td className="py-2">{formatKobo(p.amount)}</td>
+                      <td className="py-2 capitalize">{p.interval}</td>
+                      <td className="py-2">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="py-2">
+                        <CopyLink url={p.subscribe_url} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -122,6 +147,13 @@ export default function Dashboard() {
         </div>
         <MockNote>AI module ships 5 July; sample recommendations shown.</MockNote>
       </section>
+
+      {/* Create Plan Modal */}
+      <CreatePlanModal
+        open={createPlanOpen}
+        onClose={() => setCreatePlanOpen(false)}
+        onSuccess={(plan) => setPlans((prev) => [plan, ...prev])}
+      />
     </MerchantLayout>
   )
 }
@@ -130,10 +162,10 @@ function ChurnRow({ c }) {
   const ring =
     c.risk === 'high' ? 'border-red-200' : c.risk === 'medium' ? 'border-amber-200' : 'border-neutral-200'
   return (
-    <div className={`rounded-xl border ${ring} p-4`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-semibold">
+    <div className={`rounded-xl border ${ring} p-3 sm:p-4`}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold truncate">
             {c.customer} <span className="font-normal text-neutral-500">· {c.plan}</span>
           </p>
           <p className="mt-0.5 text-sm text-neutral-600">{c.reason}</p>
@@ -141,7 +173,7 @@ function ChurnRow({ c }) {
         <RiskPill risk={c.risk} score={c.score} />
       </div>
       {c.risk !== 'low' && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+        <div className="mt-3 flex flex-col gap-1 rounded-lg bg-neutral-50 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-2">
           <span>
             <strong className="text-red-700">{formatKoboShort(c.at_risk_kobo)} at risk.</strong>{' '}
             {c.recommendation}
@@ -211,13 +243,13 @@ function Row({ k, v }) {
   )
 }
 
-function EmptyPlans() {
+function EmptyPlans({ onCreate }) {
   return (
     <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center">
       <p className="text-sm text-neutral-500">No plans yet.</p>
-      <Link to="/plans/new" className="mt-3 inline-block btn-primary">
+      <button onClick={onCreate} className="mt-3 btn-primary">
         Create your first plan
-      </Link>
+      </button>
     </div>
   )
 }

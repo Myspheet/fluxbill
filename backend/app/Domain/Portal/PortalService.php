@@ -59,8 +59,11 @@ class PortalService
      */
     public function resolve(string $plainToken): ?PortalToken
     {
-        $token = PortalToken::where('token', $this->hash($plainToken))
-            ->where('used', false)
+
+        $hashed = $this->hash($plainToken);
+       
+        $token = PortalToken::where('token', $hashed)
+            // ->where('used', false)
             ->where('expires_at', '>', Carbon::now())
             ->first();
 
@@ -74,7 +77,7 @@ class PortalService
     public function consume(string $plainToken): ?Subscription
     {
         $token = $this->resolve($plainToken);
-
+       
         if (! $token) {
             return null;
         }

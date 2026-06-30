@@ -17,6 +17,7 @@ class AdminController extends Controller
     public function merchants(): JsonResponse
     {
         $merchants = Merchant::withCount(['plans', 'customers', 'subscriptions'])
+            ->where("is_admin", false)
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (Merchant $m) => [
@@ -45,7 +46,7 @@ class AdminController extends Controller
     {
         return response()->json([
             'data' => [
-                'total_merchants' => Merchant::count(),
+                'total_merchants' => Merchant::where("is_admin", false)->count(),
                 'total_plans' => \App\Domain\Plans\Models\Plan::withoutGlobalScopes()->count(),
                 'total_customers' => \App\Domain\Customers\Models\Customer::withoutGlobalScopes()->count(),
                 'total_subscriptions' => \App\Domain\Subscriptions\Models\Subscription::withoutGlobalScopes()->count(),
