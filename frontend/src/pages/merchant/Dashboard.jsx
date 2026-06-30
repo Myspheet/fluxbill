@@ -14,20 +14,27 @@ import {
 
 export default function Dashboard() {
   const [plans, setPlans] = useState([])
+  const [merchant, setMerchant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [createPlanOpen, setCreatePlanOpen] = useState(false)
 
   // Live, pre-window-safe data: the merchant's own plans.
   useEffect(() => {
-    api
-      .get('/plans')
-      .then(({ data }) => setPlans(data.data || []))
+    Promise.all([
+      api.get('/plans'),
+      api.get('/auth/me')
+    ])
+      .then(([plansRes, meRes]) => {
+        setPlans(plansRes.data.data || [])
+        setMerchant(meRes.data.data || meRes.data || null)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
   const s = mockDashboardSummary
+  const storefrontUrl = merchant ? `${window.location.origin}/store/${merchant.id}` : ''
 
   return (
     <MerchantLayout>
@@ -35,6 +42,20 @@ export default function Dashboard() {
         <div>
           <h1 className="text-xl font-bold sm:text-2xl">Dashboard</h1>
           <p className="text-sm text-neutral-500">Recovery-first view of your recurring revenue.</p>
+          {merchant && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-neutral-600">
+              <span className="font-medium">Storefront:</span>
+              <a href={`/store/${merchant.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-nomba-yellow underline truncate max-w-[200px]">
+                View ↗
+              </a>
+              <button
+                onClick={() => navigator.clipboard.writeText(storefrontUrl)}
+                className="text-xs text-neutral-500 hover:text-nomba-black font-medium"
+              >
+                Copy
+              </button>
+            </div>
+          )}
         </div>
         <button onClick={() => setCreatePlanOpen(true)} className="btn-primary w-full sm:w-auto">
           + Create plan

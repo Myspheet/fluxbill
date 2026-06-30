@@ -14,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\Nomba\NombaAuthService::class);
+        $this->app->singleton(\App\Services\Nomba\NombaClient::class);
     }
 
     /**

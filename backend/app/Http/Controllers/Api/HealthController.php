@@ -48,15 +48,13 @@ public function __invoke(): JsonResponse
 
     try {
         DB::connection()->getPdo();
-        DB::connection()->select('SELECT 1'); // force an actual query,
-                                                 // not just "does a PDO
-                                                 // object exist in memory"
+        DB::connection()->select('SELECT 1');
     } catch (Throwable $e) {
         try {
-            DB::purge('pgsql');      // explicitly drop the dead connection
-            DB::reconnect('pgsql');  // force a fresh one
+            DB::purge('pgsql');      
+            DB::reconnect('pgsql'); 
             DB::connection()->select('SELECT 1');
-            $database = 'ok'; // recovered
+            $database = 'ok';
         } catch (Throwable $e2) {
             $database = 'unavailable';
             $ok = false;
@@ -64,7 +62,6 @@ public function __invoke(): JsonResponse
             \Log::error('Health check DB failure', ['error' => $e2->getMessage()]);
         }
     }
-
     return response()->json([
         'status' => $ok ? 'ok' : 'degraded',
         'service' => 'fluxbill-api',

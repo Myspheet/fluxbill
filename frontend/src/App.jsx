@@ -8,8 +8,10 @@ import Customers from './pages/merchant/Customers'
 import CustomerDetail from './pages/merchant/CustomerDetail'
 import Reports from './pages/merchant/Reports'
 import Subscribe from './pages/checkout/Subscribe'
+import Storefront from './pages/checkout/Storefront'
 import AddGroupMembers from './pages/checkout/AddGroupMembers'
 import PaymentReturn from './pages/checkout/PaymentReturn'
+import PaymentConfirmation from './pages/checkout/PaymentConfirmation'
 import Portal from './pages/portal/Portal'
 import AdminMerchants from './pages/admin/AdminMerchants'
 import AdminMerchantDetail from './pages/admin/AdminMerchantDetail'
@@ -41,9 +43,11 @@ export default function App() {
       <Route path="/admin/reports" element={<Protected><AdminReports /></Protected>} />
 
       {/* Public customer-facing checkout */}
+      <Route path="/store/:merchantId" element={<Storefront />} />
       <Route path="/subscribe/:planId" element={<Subscribe />} />
       <Route path="/subscribe/:planId/members" element={<AddGroupMembers />} />
       <Route path="/payment/return" element={<PaymentReturn />} />
+      <Route path="/payment/confirmation" element={<PaymentConfirmation />} />
 
       {/* Customer self-service portal (magic link) */}
       <Route path="/portal/:token" element={<Portal />} />
