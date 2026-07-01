@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import MerchantLayout from '../../components/MerchantLayout'
 import StatusBadge from '../../components/StatusBadge'
+import { useToast } from '../../components/Toast'
 import api from '../../lib/apiClient'
 import { formatKobo } from '../../lib/format'
 
 export default function Customers() {
+  const toast = useToast()
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -86,6 +89,7 @@ export default function Customers() {
                 <th className="px-4 py-3 font-medium hidden sm:table-cell">Invoices</th>
                 <th className="px-4 py-3 font-medium hidden sm:table-cell">Total Paid</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
+                <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -95,6 +99,7 @@ export default function Customers() {
                   customer={c}
                   expanded={expandedId === c.id}
                   onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                  toast={toast}
                 />
               ))}
             </tbody>
@@ -105,7 +110,7 @@ export default function Customers() {
   )
 }
 
-function CustomerRow({ customer, expanded, onToggle }) {
+function CustomerRow({ customer, expanded, onToggle, toast }) {
   const c = customer
   const activeCount = c.subscriptions.filter((s) => s.status === 'active' || s.status === 'trialing').length
 
@@ -145,12 +150,22 @@ function CustomerRow({ customer, expanded, onToggle }) {
             year: 'numeric',
           })}
         </td>
+        <td className="px-4 py-3">
+          <Link
+            to={`/customers/${c.id}`}
+            state={{ customer: c }}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-semibold text-nomba-black hover:text-nomba-yellow transition"
+          >
+            View →
+          </Link>
+        </td>
       </tr>
 
       {/* Expanded subscription details */}
       {expanded && c.subscriptions.length > 0 && (
         <tr>
-          <td colSpan={5} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200">
+          <td colSpan={6} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200">
             <p className="text-xs uppercase tracking-wider text-neutral-400 font-bold mb-3">
               Subscription Details
             </p>
@@ -161,14 +176,19 @@ function CustomerRow({ customer, expanded, onToggle }) {
 
                 const generateLink = (e) => {
                   e.stopPropagation()
+                  if (portalUrl) {
+                    navigator.clipboard.writeText(portalUrl)
+                    toast.success('Link copied to clipboard')
+                    return
+                  }
                   setGenerating(true)
                   api.post('/portal/generate', { subscription_id: sub.id })
                     .then(({ data }) => {
                       setPortalUrl(data.portal_url)
                       navigator.clipboard.writeText(data.portal_url)
-                      alert('Magic portal link generated and copied to clipboard!')
+                      toast.success('Portal link generated and copied to clipboard')
                     })
-                    .catch((err) => alert(err.message))
+                    .catch((err) => toast.error(err.message || 'Failed to generate link'))
                     .finally(() => setGenerating(false))
                 }
 
@@ -207,7 +227,7 @@ function CustomerRow({ customer, expanded, onToggle }) {
                         disabled={generating}
                         className="btn-ghost border border-neutral-200 text-xs px-2.5 py-1.5 rounded-lg font-semibold hover:bg-neutral-50"
                       >
-                        {generating ? 'Generating…' : portalUrl ? 'Copy Again' : 'Generate Link'}
+                        {generating ? 'Generating…' : portalUrl ? 'Copy Link' : 'Generate Link'}
                       </button>
                     </div>
                   </div>
@@ -220,7 +240,7 @@ function CustomerRow({ customer, expanded, onToggle }) {
 
       {expanded && c.subscriptions.length === 0 && (
         <tr>
-          <td colSpan={5} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200 text-sm text-neutral-400 italic">
+          <td colSpan={6} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200 text-sm text-neutral-400 italic">
             No active subscriptions for this customer.
           </td>
         </tr>

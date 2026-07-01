@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 const TOKEN_KEY = 'fluxbill_token'
+const USER_KEY = 'fluxbill_user'
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
@@ -10,6 +11,17 @@ export function setToken(token) {
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
+export function getUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+export function setUser(user) {
+  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
 const api = axios.create({

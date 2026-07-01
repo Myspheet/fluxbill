@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { clearToken, getToken } from '../lib/apiClient'
+import api, { clearToken, getToken, getUser, setUser } from '../lib/apiClient'
 import { ConfirmModal } from './Modal'
 import { useToast } from './Toast'
 
@@ -30,7 +30,21 @@ export default function MerchantLayout({ children }) {
   const authed = !!getToken()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [user, setLocalUser] = useState(getUser)
 
+  useEffect(() => {
+    if (authed && !user) {
+      api.get('/auth/me')
+        .then(({ data }) => {
+          const u = data.data || data.user || data
+          setUser(u)
+          setLocalUser(u)
+        })
+        .catch(() => {})
+    }
+  }, [authed, user])
+
+  const isAdmin = !!user?.is_admin
   const isAdminSection = location.pathname.startsWith('/admin')
   const activeLinks = isAdminSection ? adminLinks : merchantLinks
 
@@ -66,23 +80,25 @@ export default function MerchantLayout({ children }) {
           </NavLink>
         ))}
 
-        {/* Switch section link */}
-        <div className="pt-4 mt-4 border-t border-neutral-100">
-          <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            {isAdminSection ? 'Merchant' : 'Admin'}
-          </span>
-          {isAdminSection ? (
-            <NavLink to="/dashboard" className={navItemClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
-              <DashboardIcon />
-              Merchant Dashboard
-            </NavLink>
-          ) : (
-            <NavLink to="/admin/merchants" className={navItemClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
-              <AdminIcon />
-              Admin Panel
-            </NavLink>
-          )}
-        </div>
+        {/* Switch section link — only show Admin Panel if user is admin */}
+        {(isAdmin || isAdminSection) && (
+          <div className="pt-4 mt-4 border-t border-neutral-100">
+            <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              {isAdminSection ? 'Merchant' : 'Admin'}
+            </span>
+            {isAdminSection ? (
+              <NavLink to="/dashboard" className={navItemClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+                <DashboardIcon />
+                Merchant Dashboard
+              </NavLink>
+            ) : (
+              <NavLink to="/admin/merchants" className={navItemClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+                <AdminIcon />
+                Admin Panel
+              </NavLink>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-neutral-200 px-3 py-4">
@@ -150,22 +166,24 @@ export default function MerchantLayout({ children }) {
             </NavLink>
           ))}
 
-          <div className="pt-4 mt-4 border-t border-neutral-100">
-            <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              {isAdminSection ? 'Merchant' : 'Admin'}
-            </span>
-            {isAdminSection ? (
-              <NavLink to="/dashboard" className={navItemClass} onClick={() => setMobileOpen(false)}>
-                <DashboardIcon />
-                Merchant Dashboard
-              </NavLink>
-            ) : (
-              <NavLink to="/admin/merchants" className={navItemClass} onClick={() => setMobileOpen(false)}>
-                <AdminIcon />
-                Admin Panel
-              </NavLink>
-            )}
-          </div>
+          {(isAdmin || isAdminSection) && (
+            <div className="pt-4 mt-4 border-t border-neutral-100">
+              <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                {isAdminSection ? 'Merchant' : 'Admin'}
+              </span>
+              {isAdminSection ? (
+                <NavLink to="/dashboard" className={navItemClass} onClick={() => setMobileOpen(false)}>
+                  <DashboardIcon />
+                  Merchant Dashboard
+                </NavLink>
+              ) : (
+                <NavLink to="/admin/merchants" className={navItemClass} onClick={() => setMobileOpen(false)}>
+                  <AdminIcon />
+                  Admin Panel
+                </NavLink>
+              )}
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-neutral-200 px-3 py-4">
