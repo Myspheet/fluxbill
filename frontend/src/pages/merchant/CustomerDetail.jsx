@@ -1,41 +1,49 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import MerchantLayout from '../../components/MerchantLayout'
 import StatusBadge from '../../components/StatusBadge'
 import { useToast } from '../../components/Toast'
 import api from '../../lib/apiClient'
 import { formatKobo } from '../../lib/format'
-import { mockCustomers, mockPortalInvoices } from '../../lib/mockData'
 
 export default function CustomerDetail() {
   const { id } = useParams()
+  const location = useLocation()
   const toast = useToast()
-  const [customer, setCustomer] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [customer, setCustomer] = useState(location.state?.customer || null)
+  const [loading, setLoading] = useState(!location.state?.customer)
   const [portalLink, setPortalLink] = useState(null)
   const [generatingLink, setGeneratingLink] = useState(false)
 
   useEffect(() => {
     api
       .get(`/customers/${id}`)
-      .then(({ data }) => setCustomer(data.data))
+      .then(({ data }) => setCustomer(data.data || data))
       .catch(() => {
-        const mock = mockCustomers.find((c) => c.id === id) || mockCustomers[0]
-        setCustomer({ ...mock, invoices: mockPortalInvoices })
+        // If API fails and we already have data from route state, keep it
+        if (!customer) setCustomer(null)
       })
       .finally(() => setLoading(false))
   }, [id])
 
   async function generateLink() {
+    const subId = customer?.subscriptions?.[0]?.id
     setGeneratingLink(true)
     try {
-      const { data } = await api.post(`/customers/${id}/portal-link`)
-      setPortalLink(data.data?.url || data.data?.link)
-      toast.success('Portal link generated')
+      const payload = { customer_id: id }
+      if (subId) payload.subscription_id = subId
+      const { data } = await api.post('/portal/generate', payload)
+      const url = data.portal_url || data.data?.url || data.data?.link
+      setPortalLink(url)
+      if (url) {
+        navigator.clipboard?.writeText(url)
+        toast.success('Portal link generated and copied to clipboard')
+      }
     } catch {
       const demoLink = `${window.location.origin}/portal/demo-${id}-${Math.random().toString(36).slice(2, 10)}`
       setPortalLink(demoLink)
-      toast.info('Demo portal link generated (live links activate Day 6)')
+      navigator.clipboard?.writeText(demoLink)
+      toast.info('Demo portal link generated and copied (live links activate Day 6)')
     } finally {
       setGeneratingLink(false)
     }
@@ -92,7 +100,7 @@ export default function CustomerDetail() {
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <InfoItem label="Plan" value={customer.plan || customer.subscriptions?.[0]?.plan_name || '—'} />
           <InfoItem label="Subscribed since" value={customer.created_at ? new Date(customer.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
-          <InfoItem label="Card" value={customer.card_last_four ? `•••• ${customer.card_last_four}` : '—'} />
+          <InfoItem label="Card" value={(customer.card_last_four || customer.subscriptions?.[0]?.card_last_four) ? `•••• ${customer.card_last_four || customer.subscriptions[0].card_last_four}` : '—'} />
           <InfoItem label="Total paid" value={(customer.total_paid || customer.total_paid_amount) ? formatKobo(customer.total_paid || customer.total_paid_amount) : '—'} />
         </dl>
       </div>
