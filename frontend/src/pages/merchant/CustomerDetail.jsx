@@ -90,10 +90,10 @@ export default function CustomerDetail() {
         </div>
 
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <InfoItem label="Plan" value={customer.plan || '—'} />
+          <InfoItem label="Plan" value={customer.plan || customer.subscriptions?.[0]?.plan_name || '—'} />
           <InfoItem label="Subscribed since" value={customer.created_at ? new Date(customer.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
           <InfoItem label="Card" value={customer.card_last_four ? `•••• ${customer.card_last_four}` : '—'} />
-          <InfoItem label="Total paid" value={customer.total_paid ? formatKobo(customer.total_paid) : '—'} />
+          <InfoItem label="Total paid" value={(customer.total_paid || customer.total_paid_amount) ? formatKobo(customer.total_paid || customer.total_paid_amount) : '—'} />
         </dl>
       </div>
 
@@ -131,6 +131,34 @@ export default function CustomerDetail() {
           </div>
         )}
       </div>
+
+      {/* Subscriptions */}
+      {customer.subscriptions && customer.subscriptions.length > 0 && (
+        <div className="card mb-6">
+          <h2 className="mb-4 font-semibold">Subscriptions</h2>
+          <div className="space-y-3">
+            {customer.subscriptions.map((sub) => (
+              <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-neutral-200 px-4 py-3">
+                <div>
+                  <p className="font-medium text-neutral-900">{sub.plan_name || 'Unknown Plan'}</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    {formatKobo(sub.amount)} / {sub.interval}
+                    {sub.card_last_four && <span className="ml-2 text-neutral-400">•••• {sub.card_last_four}</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {sub.current_period_end && (
+                    <span className="text-xs text-neutral-400">
+                      Renews {new Date(sub.current_period_end).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                  <StatusBadge status={sub.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Invoice history */}
       <div className="card">

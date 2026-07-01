@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import MerchantLayout from '../../components/MerchantLayout'
 import StatusBadge from '../../components/StatusBadge'
 import api from '../../lib/apiClient'
@@ -86,6 +87,7 @@ export default function Customers() {
                 <th className="px-4 py-3 font-medium hidden sm:table-cell">Invoices</th>
                 <th className="px-4 py-3 font-medium hidden sm:table-cell">Total Paid</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
+                <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -145,12 +147,21 @@ function CustomerRow({ customer, expanded, onToggle }) {
             year: 'numeric',
           })}
         </td>
+        <td className="px-4 py-3">
+          <Link
+            to={`/customers/${c.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs font-semibold text-nomba-black hover:text-nomba-yellow transition"
+          >
+            View →
+          </Link>
+        </td>
       </tr>
 
       {/* Expanded subscription details */}
       {expanded && c.subscriptions.length > 0 && (
         <tr>
-          <td colSpan={5} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200">
+          <td colSpan={6} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200">
             <p className="text-xs uppercase tracking-wider text-neutral-400 font-bold mb-3">
               Subscription Details
             </p>
@@ -220,7 +231,7 @@ function CustomerRow({ customer, expanded, onToggle }) {
 
       {expanded && c.subscriptions.length === 0 && (
         <tr>
-          <td colSpan={5} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200 text-sm text-neutral-400 italic">
+          <td colSpan={6} className="bg-neutral-50/80 px-4 py-4 border-b border-neutral-200 text-sm text-neutral-400 italic">
             No active subscriptions for this customer.
           </td>
         </tr>

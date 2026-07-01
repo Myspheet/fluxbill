@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import api, { setToken } from '../../lib/apiClient'
+import api, { setToken, setUser } from '../../lib/apiClient'
 import { useToast } from '../../components/Toast'
 import { AuthShell, Field, ErrorBanner } from './Register'
 
@@ -20,6 +20,7 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', form)
       setToken(data.token)
+      if (data.user) setUser(data.user)
       toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (err) {
